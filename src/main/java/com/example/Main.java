@@ -6,7 +6,11 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 
 public class Main {
-    private static String[] ESTENSIONI_AMMESSE = {"txt", "md", "csv"};
+    private static String[] [] ESTENSIONI_AMMESSE = {
+                                                    {"txt", "text/plain; charset=utf-8"}, 
+                                                    {"md", "text/markdown; charset=utf-8"}, 
+                                                    {"csv", "text/csv; charset=utf-8"}                                                
+                                                };
     public static void main(String[] args) throws IOException {
         try (ServerSocket ss = new ServerSocket(3000)) {
             System.out.println("Server avviato sulla porta 3000...");
