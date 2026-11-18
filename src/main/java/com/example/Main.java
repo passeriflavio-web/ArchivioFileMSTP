@@ -6,6 +6,7 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 
 public class Main {
+    private static String[] ESTENSIONI_AMMESSE = {"txt", "md", "csv"};
     public static void main(String[] args) throws IOException {
         try (ServerSocket ss = new ServerSocket(3000)) {
             System.out.println("Server avviato sulla porta 3000...");
@@ -44,50 +45,46 @@ public class Main {
                         out.println();
                         continue;
                     }
-                    String nomeFile = parti[1];
+                    String nomeBase = parti[1];
                     File cartella = new File("documenti");
-                    File file = new File(cartella, nomeFile);
-                    System.out.println("Cerco in: " + file.getAbsolutePath());
-                    //Controllo presenza del file
-                    if (!file.isFile()) {
+                    File file = null;
+                    String estensioneTrovata = null;
+
+                    for (String est : ESTENSIONI_AMMESSE) {
+                        File candidato = new File(cartella, nomeBase + "." + est);
+                        if (candidato.isFile()) {
+                            file = candidato;
+                            estensioneTrovata = est;
+                            break;
+                        }
+                    }
+                    if (file == null) {
                         out.println("ERR NOTFOUND");
                         out.println();
                         continue;
                     }
-                    //Apertura, lettura e invio contenuto
-                    boolean statoInviato = false;
+                    System.out.println("Cerco in: " + file.getAbsolutePath());
                     try (BufferedReader lettoreFile = new BufferedReader(
                             new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
-                      
                         out.println("OK FILE");
+                        out.println("TYPE " + estensioneTrovata);
                         out.println();
-                        statoInviato = true;
-
                         String riga;
                         while ((riga = lettoreFile.readLine()) != null) {
                             out.println(riga);
                         }
                     } catch (IOException e) {
-                        if (!statoInviato) {
-                            out.println("ERR READ");
-                            out.println();
-                        } else {
-                            System.err.println("Errore durante l'invio del file: " + e.getMessage());
-                        }
-                    }
-
-                } catch (IOException e) {
                     System.err.println("Errore nella gestione della connessione: " + e.getMessage());
-                }
+                    }   
+                }   
             }
         }
     }
-
     private static boolean isNomeValido(String nome) {
-        if (!nome.endsWith(".txt") || nome.equals(".txt")) {
+        if (nome == null || nome.isEmpty()) {
             return false;
         }
-        if (nome.contains("/") || nome.contains("\\") || nome.contains("..") || nome.contains(" ")) {
+        if (nome.contains(".") || nome.contains("/") || nome.contains("\\") || nome.contains(" ")) {
             return false;
         }
         return true;
