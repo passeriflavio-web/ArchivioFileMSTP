@@ -54,11 +54,11 @@ public class Main {
                     File file = null;
                     String estensioneTrovata = null;
 
-                    for (String est : ESTENSIONI_AMMESSE) {
-                        File candidato = new File(cartella, nomeBase + "." + est);
+                    for (String[] est : ESTENSIONI_AMMESSE) {
+                        File candidato = new File(cartella, nomeBase + "." + est[0]);
                         if (candidato.isFile()) {
                             file = candidato;
-                            estensioneTrovata = est;
+                            estensioneTrovata = est[1];
                             break;
                         }
                     }
