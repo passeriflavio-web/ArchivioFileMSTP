@@ -7,11 +7,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
 public class Main {
-    private static String[] [] ESTENSIONI_AMMESSE = {
-                                                    {"txt", "text/plain; charset=utf-8"}, 
-                                                    {"md", "text/markdown; charset=utf-8"}, 
-                                                    {"csv", "text/csv; charset=utf-8"}                                                
-                                                };
+    private static final String[][] ESTENSIONI_AMMESSE = {
+        {"txt", "text/plain; charset=utf-8"},
+        {"md", "text/markdown; charset=utf-8"},
+        {"csv", "text/csv; charset=utf-8"}
+    };
+
     public static void main(String[] args) throws IOException {
         try (ServerSocket ss = new ServerSocket(3000)) {
             System.out.println("Server avviato sulla porta 3000...");
@@ -25,74 +26,80 @@ public class Main {
                         new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true)
                 ) {
                     String richiesta = in.readLine();
-                    // Se il client chiude senza inviare nulla
                     if (richiesta == null) {
                         continue;
                     }
                     System.out.println("Richiesta ricevuta: " + richiesta);
+
                     //Controllo richiesta vuota
                     String pulita = richiesta.trim();
                     if (pulita.isEmpty()) {
-                        out.println("ERR SYNTAX");
-                        out.println();
+                        inviaRisposta(out, 400, "Bad Request", "text/plain; charset=utf-8", "Richiesta vuota.");
                         continue;
                     }
+
                     //Controllo comando
                     String[] parti = pulita.split("\\s+");
                     if (!parti[0].equals("LEGGI")) {
-                        out.println("ERR UNKNOWNCMD");
-                        out.println();
+                        inviaRisposta(out, 501, "Not Implemented", "text/plain; charset=utf-8", "Comando \"" + parti[0] + "\" non supportato.");
                         continue;
                     }
+
                     //Controllo numero argomenti e validità del nome file
                     if (parti.length != 2 || !isNomeValido(parti[1])) {
-                        out.println("ERR SYNTAX");
-                        out.println();
+                        inviaRisposta(out, 400, "Bad Request", "text/plain; charset=utf-8", "Sintassi o nome file non valido.");
                         continue;
                     }
+
+                    //Ricerca file
                     String nomeBase = parti[1];
                     File cartella = new File("documenti");
                     File file = null;
-                    String estensioneTrovata = null;
+                    String contentTypeTrovato = null;
 
                     for (String[] est : ESTENSIONI_AMMESSE) {
                         File candidato = new File(cartella, nomeBase + "." + est[0]);
                         if (candidato.isFile()) {
                             file = candidato;
-                            estensioneTrovata = est[1];
+                            contentTypeTrovato = est[1];
                             break;
                         }
                     }
+
                     if (file == null) {
-                        out.println("ERR NOTFOUND");
-                        out.println();
+                        inviaRisposta(out, 404, "Not Found", "text/plain; charset=utf-8", "Il file \"" + nomeBase + "\" non esiste.");
                         continue;
                     }
+
+                    //Lettura e invio file
                     System.out.println("Cerco in: " + file.getAbsolutePath());
-                    try (BufferedReader lettoreFile = new BufferedReader(
-                            new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
+                    try {
                         byte[] dati = Files.readAllBytes(file.toPath());
                         String contenuto = new String(dati, StandardCharsets.UTF_8);
-                        out.println("OK FILE");
-                        out.println("TYPE " + estensioneTrovata);
-                        out.println("Content-Length: " + dati.length);
-                        out.println();
-                        out.print(contenuto);
-                        out.flush(); 
+                        inviaRisposta(out, 200, "OK", contentTypeTrovato, contenuto);
                     } catch (IOException e) {
-                    System.err.println("Errore nella gestione della connessione: " + e.getMessage());
-                    }   
-                }   
+                        System.err.println("Errore nella lettura del file: " + e.getMessage());
+                        inviaRisposta(out, 500, "Internal Server Error", "text/plain; charset=utf-8", "Errore interno durante la lettura del file.");
+                    }
+                }
             }
         }
     }
+
+    private static void inviaRisposta(PrintWriter out, int codice, String frase, String contentType, String contenuto) {
+        byte[] bytesContenuto = contenuto.getBytes(StandardCharsets.UTF_8);
+        out.println(codice + " " + frase);
+        out.println("Content-Type: " + contentType);
+        out.println("Content-Length: " + bytesContenuto.length);
+        out.println();
+        out.print(contenuto);
+        out.flush();
+    }
+
     private static boolean isNomeValido(String nome) {
         if (nome == null || nome.isEmpty()) {
             return false;
         }
-        if (nome.contains(".") || nome.contains("/") || nome.contains("\\") || nome.contains(" ")) {
-            return false;
-        }
-        return true;
+        return !nome.contains(".") && !nome.contains("/") && !nome.contains("\\") && !nome.contains(" ");
     }
 }
