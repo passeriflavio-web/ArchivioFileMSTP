@@ -4,6 +4,7 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
 public class Main {
     private static String[] [] ESTENSIONI_AMMESSE = {
@@ -70,13 +71,14 @@ public class Main {
                     System.out.println("Cerco in: " + file.getAbsolutePath());
                     try (BufferedReader lettoreFile = new BufferedReader(
                             new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
+                        byte[] dati = Files.readAllBytes(file.toPath());
+                        String contenuto = new String(dati, StandardCharsets.UTF_8);
                         out.println("OK FILE");
                         out.println("TYPE " + estensioneTrovata);
+                        out.println("Content-Length: " + dati.length);
                         out.println();
-                        String riga;
-                        while ((riga = lettoreFile.readLine()) != null) {
-                            out.println(riga);
-                        }
+                        out.print(contenuto);
+                        out.flush(); 
                     } catch (IOException e) {
                     System.err.println("Errore nella gestione della connessione: " + e.getMessage());
                     }   
