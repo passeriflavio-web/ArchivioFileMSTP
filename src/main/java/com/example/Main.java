@@ -12,7 +12,7 @@ public class Main {
         {"md", "text/markdown; charset=utf-8"},
         {"csv", "text/csv; charset=utf-8"}
     };
-
+    private static String version = "ARCH/1.0";
     public static void main(String[] args) throws IOException {
         try (ServerSocket ss = new ServerSocket(3000)) {
             System.out.println("Server avviato sulla porta 3000...");
@@ -46,8 +46,14 @@ public class Main {
                     }
 
                     //Controllo numero argomenti e validità del nome file
-                    if (parti.length != 2 || !isNomeValido(parti[1])) {
+                    if (parti.length != 3 || !isNomeValido(parti[1]) || !isVersionValid(parti[2])) {
                         inviaRisposta(out, 400, "Bad Request", "text/plain; charset=utf-8", "Sintassi o nome file non valido.");
+                        continue;
+                    }
+
+                    //Controllo versione
+                    if (!parti[2].equals(version)){
+                        inviaRisposta(out, 505, "Verision Not Supported", "text/plain; charset=utf-8","Versione " + parti[2] + " non supportata.");
                         continue;
                     }
 
@@ -88,7 +94,7 @@ public class Main {
 
     private static void inviaRisposta(PrintWriter out, int codice, String frase, String contentType, String contenuto) {
         byte[] bytesContenuto = contenuto.getBytes(StandardCharsets.UTF_8);
-        out.println(codice + " " + frase);
+        out.println(version + " " + codice + " " + frase);
         out.println("Content-Type: " + contentType);
         out.println("Content-Length: " + bytesContenuto.length);
         out.println();
@@ -100,6 +106,13 @@ public class Main {
         if (nome == null || nome.isEmpty()) {
             return false;
         }
-        return !nome.contains(".") && !nome.contains("/") && !nome.contains("\\") && !nome.contains(" ");
+        return nome.contains("/") && !nome.contains(".") && !nome.contains("\\") && !nome.contains(" ");
+    }
+    private static boolean isVersionValid(String vers){
+        String[] versDivisa = vers.split("(?<=/)");//utilizzo del lookbehind positivo per mantenere / nella stringa
+        if(versDivisa[0].equals("ARCH/")){
+            return true;
+        }
+        return false;
     }
 }
